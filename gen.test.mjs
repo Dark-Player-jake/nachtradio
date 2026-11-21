@@ -33,9 +33,9 @@ test('Alle Töne liegen in der Tonart und in sinnvollen Lagen', () => {
     }
     for (const bar of s.melody) for (const n of bar) if (n !== null) {
       assert.ok(scale.includes(((n % 12) + 12) % 12), `Melodie in Tonart (${mood}/${seed}: ${n})`);
-      assert.ok(n >= 55 && n <= 100, `Melodielage (${n})`);
+      assert.ok(n >= 48 && n <= 88, `Melodielage (${n})`);
     }
-    for (const bar of s.bass) { assert.equal(bar.length, 16); assert.notEqual(bar[0], null); for (const n of bar) if (n !== null) assert.ok(n >= 30 && n <= 64); }
+    for (const bar of s.bass) { assert.equal(bar.length, 16); assert.notEqual(bar[0], null); for (const n of bar) if (n !== null) { assert.ok(n >= 30 && n <= 64); assert.ok(scale.includes(n % 12), `Bass in Tonart (${mood}/${seed}: ${n})`); } }
     for (const d of s.drums) { assert.equal(d.snare[4], 1); assert.equal(d.kick[0], 1); }
   }
 });

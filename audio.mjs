@@ -16,7 +16,8 @@ export class Engine {
     if (this.ctx) return;
     const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
     const c = this.ctx = new AC();
-    this.master = c.createGain(); this.master.gain.value = 0.8;
+    this.volume = 0.8;
+    this.master = c.createGain(); this.master.gain.value = this.volume;
     this.warm = c.createBiquadFilter(); this.warm.type = 'lowpass'; this.warm.frequency.value = 4200; this.warm.Q.value = 0.5;
     const sat = c.createWaveShaper();
     const curve = new Float32Array(1024);
@@ -25,7 +26,10 @@ export class Engine {
     const comp = c.createDynamicsCompressor();
     comp.threshold.value = -18; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.25;
     this.bus = c.createGain(); this.bus.gain.value = 0.7;
-    this.bus.connect(this.warm).connect(sat).connect(comp).connect(this.master).connect(c.destination);
+    // gate: schließt bei Pause sofort, auch für schon geplante und klingende Noten
+    this.gate = c.createGain(); this.gate.gain.value = 0;
+    this.bus.connect(this.gate).connect(this.warm).connect(sat).connect(comp).connect(this.master).connect(c.destination);
+    c.onstatechange = () => this.onState?.(c.state);
     // Analyser für die Visualisierung
     this.analyser = c.createAnalyser(); this.analyser.fftSize = 256;
     this.master.connect(this.analyser);
@@ -38,7 +42,6 @@ export class Engine {
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     this.chan = {};
     for (const k of Object.keys(this.layers)) { const g = c.createGain(); g.gain.value = this.layers[k] ? 1 : 0; g.connect(this.bus); this.chan[k] = g; }
-    this.chan.drums.gain.value *= 0.9;
     this.startAmbience();
   }
 
@@ -46,7 +49,7 @@ export class Engine {
     this.layers[k] = on;
     if (this.chan) this.chan[k].gain.setTargetAtTime(on ? 1 : 0, this.ctx.currentTime, 0.15);
   }
-  setVolume(v) { if (this.master) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05); }
+  setVolume(v) { this.volume = v; if (this.master && !this.fading) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05); }
   setWarmth(v) { if (this.warm) this.warm.frequency.setTargetAtTime(900 + (1 - v) * 7000, this.ctx.currentTime, 0.1); }
 
   // Knistern: Puffer mit seltenen Klicks; Regen: gefiltertes Rauschen mit langsamer Bewegung
@@ -74,6 +77,7 @@ export class Engine {
 
   load(song) {
     this.song = song;
+    this.pending = null; // ein älterer Wechselwunsch darf das neue Stück nicht überschreiben
     this.step = 0;
     this.bar = 0;
     this.cycle = 0;
@@ -81,17 +85,42 @@ export class Engine {
 
   async play() {
     this.init();
-    if (this.ctx.state === 'suspended') await this.ctx.resume();
+    if (this.ctx.state !== 'running') await this.ctx.resume();
+    this.cancelFade();
     if (this.playing) return;
     this.playing = true;
-    this.nextTime = this.ctx.currentTime + 0.08;
+    const now = this.ctx.currentTime;
+    this.gate.gain.cancelScheduledValues(now);
+    this.gate.gain.setTargetAtTime(1, now, 0.02);
+    this.nextTime = now + 0.08;
     this.loopStart = this.nextTime - stepTime(this.step, this.song.bpm, this.song.swing);
-    this.timer = setInterval(() => this.schedule(), 25);
+    // Weiter mitten im Takt: den laufenden Akkord gleich anspielen statt bis zum nächsten Takt zu schweigen
+    if (this.step % 16 !== 0) {
+      const bar = Math.floor(this.step / 16), rest = (16 - (this.step % 16)) / 16;
+      this.keys(this.song.chords[bar].notes, this.nextTime, (60 / this.song.bpm) * 4 * rest);
+    }
+    this.startTimer();
+  }
+
+  // Taktgeber im Worker: dort werden Timer im Hintergrund-Tab weniger gedrosselt als im Hauptthread
+  startTimer() {
+    this.stopTimer();
+    try {
+      if (!Engine.workerUrl) Engine.workerUrl = URL.createObjectURL(new Blob(['let i;onmessage=(e)=>{clearInterval(i);if(e.data)i=setInterval(()=>postMessage(0),25)}'], { type: 'text/javascript' }));
+      this.worker = new Worker(Engine.workerUrl);
+      this.worker.onmessage = () => this.schedule();
+      this.worker.postMessage(1);
+    } catch { this.timer = setInterval(() => this.schedule(), 25); }
+  }
+  stopTimer() {
+    clearInterval(this.timer); this.timer = null;
+    if (this.worker) { this.worker.terminate(); this.worker = null; }
   }
 
   pause() {
     this.playing = false;
-    clearInterval(this.timer);
+    this.stopTimer();
+    if (this.gate) { const now = this.ctx.currentTime; this.gate.gain.cancelScheduledValues(now); this.gate.gain.setTargetAtTime(0, now, 0.03); }
   }
 
   // Wechsel auf ein neues Stück ohne Lücke: ab dem nächsten Taktanfang
@@ -195,7 +224,7 @@ export class Engine {
   kick(t) {
     const c = this.ctx, o = c.createOscillator(), g = c.createGain();
     o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
-    g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
     o.connect(g).connect(this.chan.drums); o.start(t); o.stop(t + 0.4);
   }
 
@@ -219,10 +248,24 @@ export class Engine {
 
   // Ausblenden über `secs`, danach Pause
   fadeOut(secs) {
-    const c = this.ctx, now = c.currentTime, v = this.master.gain.value;
+    const c = this.ctx, now = c.currentTime;
+    this.fading = true;
     this.master.gain.cancelScheduledValues(now);
-    this.master.gain.setValueAtTime(v, now);
+    this.master.gain.setValueAtTime(this.master.gain.value, now);
     this.master.gain.linearRampToValueAtTime(0.0001, now + secs);
-    return new Promise((res) => setTimeout(() => { this.pause(); this.master.gain.setValueAtTime(v, c.currentTime); res(); }, secs * 1000));
+    return new Promise((res) => {
+      this.fadeDone = res;
+      this.fadeTimer = setTimeout(() => { this.fadeDone = null; this.pause(); this.cancelFade(); res(true); }, secs * 1000);
+    });
+  }
+  // Ausblenden abbrechen (Play/Pause von Hand) und Lautstärke wiederherstellen; das Tor ist dann schon zu oder offen
+  cancelFade() {
+    if (!this.fading) return;
+    clearTimeout(this.fadeTimer);
+    this.fading = false;
+    const now = this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(now);
+    this.master.gain.setTargetAtTime(this.volume, now, 0.05);
+    this.fadeDone?.(false); this.fadeDone = null;
   }
 }

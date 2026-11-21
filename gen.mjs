@@ -69,14 +69,18 @@ export function compose(seed, moodId = 'regen') {
     const steps = new Array(16).fill(null);
     steps[0] = c.root;
     if (r() < 0.6) steps[10] = c.root + (r() < 0.5 ? 7 : 12);
-    if (r() < 0.4) steps[14] = c.root + pick(r, [-2, -1, 2, 5]);
+    if (r() < 0.4) { // Durchgangston aus der Tonleiter: Nachbarstufe oder Quarte über dem Grundton
+      const pcs = scale.map((x) => (x + root) % 12);
+      const cands = [-2, -1, 1, 2, 5].map((d) => c.root + d).filter((n) => pcs.includes(n % 12));
+      steps[14] = pick(r, cands);
+    }
     return steps;
   });
 
   // Melodie: Pentatonik der Tonart, eher Akkordtöne auf schweren Zählzeiten, viele Pausen
   const penta = mood.mode === 'major' ? [0, 2, 4, 7, 9] : [0, 3, 5, 7, 10];
   const melodyNotes = [];
-  for (let o = 0; o < 2; o++) for (const p of penta) melodyNotes.push(72 + root % 12 + p + o * 12 - (root % 12 > 5 ? 12 : 0));
+  for (let o = 0; o < 2; o++) for (const p of penta) melodyNotes.push(60 + root % 12 + p + o * 12 - (root % 12 > 5 ? 12 : 0));
   let last = Math.floor(melodyNotes.length / 2);
   const melody = chords.map((c) => {
     const steps = new Array(16).fill(null);

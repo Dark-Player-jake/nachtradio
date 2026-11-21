@@ -26,7 +26,7 @@ function title(s) {
 
 // ---------- Oberfläche ----------
 $('moods').innerHTML = Object.entries(MOODS).map(([k, m]) => `<button type="button" role="radio" data-k="${k}">${m.name}</button>`).join('');
-for (const b of $('moods').children) b.addEventListener('click', () => { mood = b.dataset.k; newSong(seed); });
+for (const b of $('moods').children) b.addEventListener('click', () => { if (mood === b.dataset.k) return; mood = b.dataset.k; newSong(seed); });
 
 const LAYERS = [['drums', 'Drums'], ['keys', 'Akkorde'], ['bass', 'Bass'], ['melody', 'Melodie'], ['crackle', 'Knistern'], ['rain', 'Regen']];
 $('layers').innerHTML = LAYERS.map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${engine.layers[k]}">${l}</button>`).join('');
@@ -34,6 +34,7 @@ for (const b of $('layers').children) b.addEventListener('click', () => {
   const on = b.getAttribute('aria-pressed') !== 'true';
   b.setAttribute('aria-pressed', String(on));
   engine.setLayer(b.dataset.k, on);
+  if (reduce && scene) draw(); // Regen ein/aus auch ohne Animation sichtbar machen
 });
 
 function newSong(s = (Math.random() * 2 ** 31) >>> 0) {
@@ -54,7 +55,7 @@ function setPlaying(p) {
   $('play').setAttribute('aria-label', p ? 'Pause' : 'Abspielen');
 }
 async function toggle() {
-  if (engine.playing) { engine.pause(); setPlaying(false); }
+  if (engine.playing) { engine.pause(); engine.cancelFade(); setPlaying(false); }
   else {
     try { await engine.play(); setPlaying(true); engine.setWarmth(+$('warm').value); engine.setVolume(+$('vol').value); }
     catch { say('Audio konnte nicht gestartet werden.'); }
@@ -76,9 +77,11 @@ $('sleep').addEventListener('change', (e) => {
   if (!min) return say('Schlaftimer aus.');
   say(`Blendet in ${min} Minuten aus.`);
   sleepTimer = setTimeout(async () => {
-    if (!engine.playing) return;
-    await engine.fadeOut(30);
-    setPlaying(false); $('sleep').value = '0'; say('Gute Nacht.');
+    $('sleep').value = '0';
+    if (!engine.playing) return say('Schlaftimer abgelaufen.');
+    const finished = await engine.fadeOut(30);
+    if (!finished) return; // zwischendurch von Hand bedient
+    setPlaying(false); scheduleAuto(); say('Gute Nacht.');
   }, min * 60_000 - 30_000);
 });
 
@@ -88,7 +91,7 @@ function scheduleAuto() {
 }
 
 addEventListener('keydown', (e) => {
-  if (e.target.closest('input, select') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest?.('input, select') || e.metaKey || e.ctrlKey || e.altKey || e.repeat || !e.key) return;
   if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); toggle(); }
   else if (e.key.toLowerCase() === 'n') newSong();
 });
@@ -122,30 +125,34 @@ function buildScene() {
     layers.push(bs);
   }
   const lights = Array.from({ length: 26 }, () => ({ x: r() * W, y: H * (0.45 + r() * 0.5), s: 10 + r() * 40, a: 0.05 + r() * 0.12, v: (r() - 0.5) * 0.08, h: hue + (r() - 0.5) * 60 }));
-  scene = { hue, layers, lights };
+  // Gebäude einmal vorrendern; pro Frame werden nur die pulsierenden Fenster nachgezeichnet
+  const dpr = Math.min(2, devicePixelRatio || 1), city = document.createElement('canvas');
+  city.width = W * dpr; city.height = H * dpr;
+  const c2 = city.getContext('2d'); c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const pulsing = [];
+  layers.forEach((bs, L) => {
+    for (const b of bs) {
+      c2.fillStyle = `hsl(${hue} 25% ${5 + L * 3}%)`; c2.fillRect(b.x, H - b.h, b.w, b.h);
+      for (const [wx, wy, k] of b.wins) {
+        c2.fillStyle = `rgb(242 200 121 / ${(0.25 + k * 0.5) * (0.5 + L * 0.25)})`; c2.fillRect(wx, wy, 4, 6);
+        if (k > 0.85) pulsing.push([wx, wy, 0.5 + L * 0.25]);
+      }
+    }
+  });
+  scene = { hue, city, pulsing, lights };
   drops = Array.from({ length: 140 }, () => ({ x: r() * W, y: r() * H, l: 8 + r() * 18, v: 4 + r() * 6 }));
   if (reduce) draw();
 }
 function draw() {
-  const W = innerWidth, H = innerHeight, { hue, layers, lights } = scene;
+  const W = innerWidth, H = innerHeight, { hue, city, pulsing, lights } = scene;
   const g = cx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, `hsl(${hue} 35% 7%)`); g.addColorStop(1, `hsl(${hue} 30% 16%)`);
   cx.fillStyle = g; cx.fillRect(0, 0, W, H);
   // Mond
   cx.fillStyle = 'rgb(242 200 121 / 0.85)'; cx.beginPath(); cx.arc(W * 0.78, H * 0.18, 26, 0, 7); cx.fill();
   cx.fillStyle = `hsl(${hue} 35% 8%)`; cx.beginPath(); cx.arc(W * 0.78 + 11, H * 0.18 - 7, 24, 0, 7); cx.fill();
-  layers.forEach((bs, L) => {
-    cx.fillStyle = `hsl(${hue} 25% ${5 + L * 3}%)`;
-    for (const b of bs) {
-      cx.fillRect(b.x, H - b.h, b.w, b.h);
-      for (const [wx, wy, k] of b.wins) {
-        const lit = 0.25 + k * 0.5 + (k > 0.85 ? pulse * 0.35 : 0);
-        cx.fillStyle = `rgb(242 200 121 / ${lit * (0.5 + L * 0.25)})`;
-        cx.fillRect(wx, wy, 4, 6);
-      }
-      cx.fillStyle = `hsl(${hue} 25% ${5 + L * 3}%)`;
-    }
-  });
+  cx.drawImage(city, 0, 0, W, H);
+  if (pulse > 0.02) for (const [wx, wy, f] of pulsing) { cx.fillStyle = `rgb(242 200 121 / ${pulse * 0.35 * f})`; cx.fillRect(wx, wy, 4, 6); }
   // Unscharfe Lichter wie auf einer nassen Scheibe
   for (const p of lights) {
     const rg = cx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.s);
@@ -159,15 +166,19 @@ function draw() {
     cx.stroke();
   }
 }
-function frame() {
+let lastT = 0;
+function frame(t) {
+  const k = lastT ? Math.min(4, (t - lastT) / (1000 / 60)) : 1; // Bewegung in 60-fps-Schritten, unabhängig von der Bildrate
+  lastT = t;
   if (!reduce) {
-    pulse *= 0.92;
-    for (const p of scene.lights) { p.x += p.v; if (p.x < -50) p.x = innerWidth + 50; if (p.x > innerWidth + 50) p.x = -50; }
-    for (const d of drops) { d.y += d.v; d.x -= d.v * 0.15; if (d.y > innerHeight) { d.y = -20; d.x = Math.random() * innerWidth; } }
+    pulse *= 0.92 ** k;
+    for (const p of scene.lights) { p.x += p.v * k; if (p.x < -50) p.x = innerWidth + 50; if (p.x > innerWidth + 50) p.x = -50; }
+    for (const d of drops) { d.y += d.v * k; d.x -= d.v * 0.15 * k; if (d.y > innerHeight) { d.y = -20; d.x = Math.random() * innerWidth; } }
     draw();
   }
   requestAnimationFrame(frame);
 }
+engine.onState = (state) => { if (engine.playing && state !== 'running') say('Audio wurde vom System angehalten. Zum Fortsetzen Play drücken.'); if (state !== 'running' && engine.playing) { engine.pause(); setPlaying(false); } };
 engine.onStep = (ev) => { if (ev.kick) setTimeout(() => { pulse = 1; }, Math.max(0, (ev.t - engine.ctx.currentTime) * 1000)); };
 
 addEventListener('resize', resize);
