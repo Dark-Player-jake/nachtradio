@@ -105,8 +105,10 @@ export class Engine {
     const barLen = 60 / s.bpm * 4;
     while (true) {
       const t = this.loopStart + Math.floor(this.step / 16) * barLen + stepTime(this.step % 16, s.bpm, s.swing);
-      if (t > c.currentTime + 0.12) break;
-      this.playStep(this.step, t);
+      // Im Hintergrund-Tab laufen Timer gedrosselt (etwa 1×/s): dann weiter vorausplanen
+      if (t > c.currentTime + (document.hidden ? 1.5 : 0.12)) break;
+      // Nach einem Hänger verpasste Schritte überspringen statt alle auf einmal nachzuspielen
+      if (t >= c.currentTime - 0.03) this.playStep(this.step, t);
       this.step++;
       if (this.step % 16 === 0) {
         this.bar++;
