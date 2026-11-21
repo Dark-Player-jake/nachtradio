@@ -92,7 +92,7 @@ function scheduleAuto() {
 
 addEventListener('keydown', (e) => {
   if (e.target.closest?.('input, select') || e.metaKey || e.ctrlKey || e.altKey || e.repeat || !e.key) return;
-  if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); toggle(); }
+  if (e.key === ' ' && !e.target.closest?.('button')) { e.preventDefault(); toggle(); }
   else if (e.key.toLowerCase() === 'n') newSong();
 });
 
