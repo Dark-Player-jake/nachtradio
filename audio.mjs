@@ -255,17 +255,17 @@ export class Engine {
     this.master.gain.linearRampToValueAtTime(0.0001, now + secs);
     return new Promise((res) => {
       this.fadeDone = res;
-      this.fadeTimer = setTimeout(() => { this.fadeDone = null; this.pause(); this.cancelFade(); res(true); }, secs * 1000);
+      this.fadeTimer = setTimeout(() => { this.fadeDone = null; this.pause(); this.cancelFade(0.2); res(true); }, secs * 1000); // Master erst hoch, wenn das Tor zu ist
     });
   }
   // Ausblenden abbrechen (Play/Pause von Hand) und Lautstärke wiederherstellen; das Tor ist dann schon zu oder offen
-  cancelFade() {
+  cancelFade(delay = 0) {
     if (!this.fading) return;
     clearTimeout(this.fadeTimer);
     this.fading = false;
     const now = this.ctx.currentTime;
     this.master.gain.cancelScheduledValues(now);
-    this.master.gain.setTargetAtTime(this.volume, now, 0.05);
+    this.master.gain.setTargetAtTime(this.volume, now + delay, 0.05);
     this.fadeDone?.(false); this.fadeDone = null;
   }
 }
