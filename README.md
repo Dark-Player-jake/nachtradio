@@ -1,5 +1,7 @@
 # Nachtradio
 
+[Deutsche Fassung](README.de.md)
+
 **Endless lo-fi beats, composed and synthesized live in your browser.**
 No samples, no audio files, no dependencies, no build step.
 
