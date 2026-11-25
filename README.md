@@ -7,7 +7,9 @@ Endlose Lo-Fi-Beats, live im Browser komponiert und synthetisiert. Keine Samples
 - **Klang:** E-Piano-artige Akkorde, Bass, Lead mit Vibrato, Kick/Snare/Hats aus Oszillatoren und Rauschen, Bandleiern (LFO auf die Verstimmung), Sättigung, Tiefpass „Wärme“, Plattenknistern, Regen
 - **Form:** Die Melodie pausiert jeden dritten Durchlauf, ab und zu werden die Drums kurz leiser; auf Wunsch alle 3 Minuten ein neues Stück mit nahtlosem Wechsel am Taktanfang
 - Spuren einzeln schaltbar, Schlaftimer mit 30 Sekunden Ausblenden, animierte Stadt bei Nacht (ruht bei „Bewegung reduzieren“)
-- Tasten: `Leertaste` Play/Pause, `N` neues Stück
+- **Hintergrund wählbar:** Stadt, Meer (Mondspiegelung), Wald (Glühwürmchen), Sterne (Milchstraße, Sternschnuppen); Fenster und Sterne pulsieren mit der Kick
+- **Vollbild** und **Ruhemodus:** Läuft Musik und ruht die Maus 3 Sekunden, verschwinden Menü und Mauszeiger, stattdessen Uhr und Titel (beides abschaltbar, wird im Browser gemerkt)
+- Tasten: `Leertaste` Play/Pause, `N` neues Stück, `F` Vollbild, `H` Menü aus/ein
 
 ## Starten
 
