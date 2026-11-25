@@ -5,7 +5,9 @@
 **Endless lo-fi beats, composed and synthesized live in your browser.**
 No samples, no audio files, no dependencies, no build step.
 
-<!-- TODO before going public: add docs/screenshot.png and a live demo link (e.g. GitHub Pages). -->
+![Nachtradio with the city background and the player open](docs/screenshot.png)
+
+<!-- TODO before going public: add a live demo link (e.g. GitHub Pages). -->
 
 > [!NOTE]
 > The user interface is in German for now. Contributions for an English UI are welcome.
