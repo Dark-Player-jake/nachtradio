@@ -24,3 +24,7 @@ node --test
 ```
 
 Prüft Akkordbildung, enge Lage, Determinismus, dass alle Akkord- und Melodietöne in der Tonart liegen (800 Stücke), Tonlagen, Swing-Timing und die Link-Kodierung.
+
+## Lizenz
+
+[MIT](LICENSE)

@@ -69,5 +69,4 @@ keep the project free of dependencies and external resources.
 
 ## License
 
-<!-- TODO: license not chosen yet (MIT proposed). Add a LICENSE file before making the repo public. -->
-Not decided yet.
+[MIT](LICENSE)
