@@ -4,6 +4,8 @@ Endlose Lo-Fi-Beats, live im Browser komponiert und synthetisiert. Keine Samples
 
 ![Nachtradio mit Stadt-Hintergrund und geöffnetem Player](docs/screenshot.png)
 
+**Live-Demo:** <https://dark-player-jake.github.io/nachtradio/>
+
 - **Komposition aus einem Seed:** Tonart, Tempo, Akkordfolge (Sept-/Nonenakkorde in enger Lage), Basslinie, Pentatonik-Melodie und Drum-Pattern mit Swing. Gleicher Seed, gleiches Stück, deshalb lässt sich jedes Stück per Link teilen (`#kaffee-kvdlui`).
 - **4 Stimmungen:** Regen, Kaffee, Spät, Sonntag (Tempo, Dur/Moll, Swing, Melodiedichte)
 - **Klang:** E-Piano-artige Akkorde, Bass, Lead mit Vibrato, Kick/Snare/Hats aus Oszillatoren und Rauschen, Bandleiern (LFO auf die Verstimmung), Sättigung, Tiefpass „Wärme“, Plattenknistern, Regen
