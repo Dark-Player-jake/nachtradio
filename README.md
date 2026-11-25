@@ -20,9 +20,14 @@ No samples, no audio files, no dependencies, no build step.
   noise, tape wobble, saturation, a "warmth" low-pass, vinyl crackle and rain.
 - **Form:** the melody rests every third pass and the drums dip now and then. Optionally a new
   track every 3 minutes, switched seamlessly on the downbeat.
-- Every track can be muted on its own, sleep timer with a 30-second fade-out, an animated city at
-  night (it stops when the system asks for reduced motion).
-- Keys: `Space` play/pause, `N` new track.
+- Every track can be muted on its own, sleep timer with a 30-second fade-out, an animated night
+  scene (it stops when the system asks for reduced motion).
+- **4 backgrounds:** city, sea (moonlight reflection), forest (fireflies), stars (Milky Way,
+  shooting stars). Windows and stars pulse with the kick.
+- **Fullscreen and idle mode:** while music plays and the mouse rests for 3 seconds, the menu and
+  cursor fade out and a clock and the track title appear instead (both can be turned off; the
+  choice is remembered in the browser).
+- Keys: `Space` play/pause, `N` new track, `F` fullscreen, `H` hide/show menu.
 
 ## Quick start
 
