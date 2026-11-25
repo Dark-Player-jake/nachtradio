@@ -10,8 +10,8 @@ Lookahead-Scheduler (25 ms Takt, 120 ms Vorlauf), Swing über verschobene ungera
 
 ## Risiken
 
-Klang nicht angehört; Verhalten im Hintergrund-Tab (gedrosselte Timer) zu prüfen.
+Verhalten im Hintergrund-Tab (Browser drosseln dort Timer) ist noch nicht systematisch geprüft.
 
 ## MVP / Erfolgstest
 
-Entstanden in der Nachtschicht 21./22.11.2026. Erfolgstest: `node --test` grün und die Kernaktion im Browser ohne Konsolenfehler bedienbar (per Playwright geprüft). Was Menschen noch prüfen müssen, steht in der Projekt-Memory `nachtschicht-2026-11-21`.
+Erfolgstest: `node --test` grün und die Kernaktion im Browser ohne Konsolenfehler bedienbar.
