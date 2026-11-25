@@ -107,8 +107,9 @@ function wake() {
   clearTimeout(idleTimer);
   if (!$('autohide').checked || !engine.playing) return; // ohne Musik bleibt das Menü stehen
   idleTimer = setTimeout(() => {
-    // Nicht ausblenden, solange die Maus auf dem Menü liegt oder eine Auswahlliste offen ist
-    if ($('player').matches(':hover') || document.activeElement?.tagName === 'SELECT') return wake();
+    // Nicht ausblenden, solange die Maus auf dem Menü liegt oder eine Auswahlliste offen ist.
+    // Nur mit Maus prüfen: auf Touch bleibt :hover nach dem Tippen hängen (#4).
+    if ((matchMedia('(hover: hover)').matches && $('player').matches(':hover')) || document.activeElement?.tagName === 'SELECT') return wake();
     setIdle(true);
   }, IDLE_MS);
 }
